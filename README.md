@@ -46,7 +46,7 @@ This will create `984 ( = 12 * 84)` rows for `case class Data` as
 `[String, Int, Array[Byte], Double, Float, Long, String]` with 42 bytes byte array and 42 chars String, and save this 
 as a MapR-DB table in `/user/mapr/tables/test_gen`.
 
-We can all generate parquet data in the following way. 
+We can generate parquet data in the following way. 
 
 ```bash 
 ./bin/spark-submit --master yarn \
