@@ -38,7 +38,7 @@ public class ParseOptions implements Serializable {
         this.showRows = 0;
         this.rangeInt = Integer.MAX_VALUE;
         this.affixRandom = false;
-        this.outputFileFormat = "parquet";
+        this.outputFileFormat = "maprdb";
         this.dataSinkOptions = new Hashtable<>();
 
         options = new Options();

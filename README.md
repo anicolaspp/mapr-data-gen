@@ -39,7 +39,7 @@ An example run would be :
 ```bash 
 ./bin/spark-submit --master yarn \
 --class com.github.anicolaspp.Generator mapr-data-gen-1.0.jar  \
--o /user/mapr/tables/test_gen -r 84 -s 42 -p 12
+-o /user/mapr/tables/test_gen -r 84 -s 42 -p 12 -f maprdb
 ```
 
 This will create `984 ( = 12 * 84)` rows for `case class Data` as 
@@ -51,7 +51,7 @@ We can all generate parquet data in the following way.
 ```bash 
 ./bin/spark-submit --master yarn \
 --class com.github.anicolaspp.Generator mapr-data-gen-1.0.jar  \
--o /user/mapr/tables/test_gen -r 84 -s 42 -p 12 -f /user/mapr/data/parquet
+-o /user/mapr/data/parquet -r 84 -s 42 -p 12 -f parquet 
 ```
 
 In this case the same data is generated and saved in `/user/mapr/data/parquet`
