@@ -21,7 +21,7 @@ Current options are:
    -C,--compress <arg>                          <String> compression type, valid values are:
                                                 uncompressed, snappy, gzip,
                                                 lzo (default: uncompressed)
-   -f,--format <arg>                            <String> output format type (e.g., parquet (default), maprdb, etc.)
+   -f,--format <arg>                            <String> output format type (e.g., parquet, maprdb (default), etc.)
    -o,--output <arg>                            <String> the output file name (default: /ParqGenOutput.parquet)
    -O,--options <arg>                           <str,str> key,value strings that will be passed to the data source of spark in
                                                 writing. E.g., for parquet you may want to re-consider parquet.block.size. The
