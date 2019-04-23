@@ -2,14 +2,15 @@ package com.github.anicolaspp
 
 import com.github.anicolaspp.configuration.ParseOptions
 import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
-import org.apache.spark.streaming.kafka.producer.ProducerConf
+import org.apache.spark.streaming.dstream.ConstantInputDStream
 import org.apache.spark.streaming.{Milliseconds, StreamingContext}
 
 import scala.collection.mutable.ListBuffer
-import Logger._
+import scala.util.Try
 
 object Generator {
 
+  import Logger._
   import com.mapr.db.spark.sql._
 
   def main(args: Array[String]) {
@@ -20,7 +21,7 @@ object Generator {
 
     options.parse(args)
 
-    val spark = SparkSession
+    implicit val spark = SparkSession
       .builder()
       .appName("MapR Data Gen")
       .enableHiveSupport()
@@ -63,14 +64,28 @@ object Generator {
 
   }
 
-  private def writeToStream(options: ParseOptions, outputDS: Dataset[Data]) = {
-    val producerConf = new ProducerConf(bootstrapServers = "".split(",").toList)
-      .withKeySerializer("org.apache.kafka.common.serialization.StringSerializer")
-      .withValueSerializer("org.apache.kafka.common.serialization.StringSerializer")
-
+  private def writeToStream(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession) = {
     import com.github.anicolaspp.RDDFunctions._
 
-    outputDS.rdd.map(_.toString).sendToKafka(options.getOutput, producerConf, options.getConcurrency)
+    if (options.getTimeout != null) {
+
+      val ssc = new StreamingContext(spark.sparkContext, Milliseconds(10))
+
+      val stream = new ConstantInputDStream[String](ssc, outputDS.rdd.map(_.toString))
+
+      stream.foreachRDD(_.sendToKafka(options.getOutput, options.getConcurrency))
+
+      log(s"Running for the next ${options.getTimeout} minutes...")
+
+      ssc.start()
+
+      Try {
+        ssc.awaitTerminationOrTimeout(options.getTimeout.toMillis)
+      }
+
+    } else {
+      outputDS.rdd.map(_.toString).sendToKafka(options.getOutput, options.getConcurrency)
+    }
   }
 
   def outputFromTable(fileName: String, showRows: Int)(implicit spark: SparkSession): Unit = {

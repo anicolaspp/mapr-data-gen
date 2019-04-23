@@ -6,12 +6,15 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import scala.concurrent.duration.FiniteDuration;
 
 import java.io.Serializable;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class ParseOptions implements Serializable {
+    private FiniteDuration timeout;
     private Options options;
     private long rowCount;
     private String output;
@@ -45,6 +48,7 @@ public class ParseOptions implements Serializable {
         
         options = new Options();
         
+        options.addOption("m", "minutes", true, "number of minutes to run the stream generator. (default: " + this.concurrency + ")");
         options.addOption("c", "threads", true, "<long> total number of threads (default: " + this.concurrency + ")");
         options.addOption("r", "rows", true, "<long> total number of rows (default: " + this.rowCount + ")");
         options.addOption("o", "output", true, "<String> the output file name (default: " + this.output + ")");
@@ -188,9 +192,13 @@ public class ParseOptions implements Serializable {
                 /* otherwise we got stuff */
                 dataSinkOptions.put(vals[0].trim(), vals[1].trim());
             }
-    
+            
             if (cmd.hasOption("c")) {
                 this.concurrency = Integer.parseInt(cmd.getOptionValue("c").trim());
+            }
+            
+            if (cmd.hasOption("m")) {
+                this.timeout = scala.concurrent.duration.FiniteDuration.apply(Integer.parseInt(cmd.getOptionValue("m").trim()), TimeUnit.MINUTES);
             }
             
         } catch (ParseException e) {
@@ -200,5 +208,9 @@ public class ParseOptions implements Serializable {
     
     public Integer getConcurrency() {
         return concurrency;
+    }
+    
+    public FiniteDuration getTimeout() {
+        return timeout;
     }
 }

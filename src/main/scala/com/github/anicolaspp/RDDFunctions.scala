@@ -14,7 +14,7 @@ object RDDFunctions {
 
   implicit class Funcitons(rdd: RDD[String]) {
 
-    def sendToKafka(streamName: String, conf: ProducerConf, numberOfThreads: Int = 100): Unit = {
+    def sendToKafka(streamName: String, numberOfThreads: Int = 100): Unit = {
 
       rdd.foreachPartition { partition =>
         implicit val ec = ExecutionContext.fromExecutor(Executors.newWorkStealingPool(numberOfThreads))
