@@ -26,6 +26,7 @@ public class ParseOptions implements Serializable {
     private boolean affixRandom;
     private String outputFileFormat;
     private Map<String, String> dataSinkOptions;
+    private Integer concurrency;
     
     public ParseOptions() {
         this.rowCount = 10;
@@ -40,9 +41,11 @@ public class ParseOptions implements Serializable {
         this.affixRandom = false;
         this.outputFileFormat = "maprdb";
         this.dataSinkOptions = new Hashtable<>();
-
+        this.concurrency = 100;
+        
         options = new Options();
         
+        options.addOption("c", "threads", true, "<long> total number of threads (default: " + this.concurrency + ")");
         options.addOption("r", "rows", true, "<long> total number of rows (default: " + this.rowCount + ")");
         options.addOption("o", "output", true, "<String> the output file name (default: " + this.output + ")");
         options.addOption("t", "tasks", true, "<int> number of tasks to generate this data (default: " + this.tasks + ")");
@@ -59,7 +62,7 @@ public class ParseOptions implements Serializable {
         options.addOption("f", "format", true, "<String> output format type (e.g., parquet (default), csv, etc.)");
         options.addOption("O", "options", true, "<str,str> key,value strings that will be passed to the data source of spark in writing." +
                 " E.g., for parquet you may want to re-consider parquet.block.size. The default is 128MB (the HDFS block size). ");
-    
+        
         this.banner = "\n" +
                 " __  __             ____    ____        _           ____            \n" +
                 "|  \\/  | __ _ _ __ |  _ \\  |  _ \\  __ _| |_ __ _   / ___| ___ _ __  \n" +
@@ -139,7 +142,7 @@ public class ParseOptions implements Serializable {
         
         try {
             CommandLine cmd = parser.parse(options, args);
-        
+            
             if (cmd.hasOption("o")) {
                 this.output = cmd.getOptionValue("o").trim();
             }
@@ -185,9 +188,17 @@ public class ParseOptions implements Serializable {
                 /* otherwise we got stuff */
                 dataSinkOptions.put(vals[0].trim(), vals[1].trim());
             }
+    
+            if (cmd.hasOption("c")) {
+                this.concurrency = Integer.parseInt(cmd.getOptionValue("c").trim());
+            }
             
         } catch (ParseException e) {
             showErrorAndExit("Failed to parse command line properties" + e);
         }
+    }
+    
+    public Integer getConcurrency() {
+        return concurrency;
     }
 }

@@ -2,8 +2,11 @@ package com.github.anicolaspp
 
 import com.github.anicolaspp.configuration.ParseOptions
 import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.streaming.kafka.producer.ProducerConf
+import org.apache.spark.streaming.{Milliseconds, StreamingContext}
 
 import scala.collection.mutable.ListBuffer
+import Logger._
 
 object Generator {
 
@@ -13,22 +16,24 @@ object Generator {
     val options = new ParseOptions()
 
     println(options.getBanner)
-    println("concat arguments = " + args.foldLeft("")(_ + _))
+    log("concat arguments = " + args.foldLeft("")(_ + _))
 
     options.parse(args)
 
     val spark = SparkSession
       .builder()
-      .appName("Data Generator")
+      .appName("MapR Data Gen")
       .enableHiveSupport()
       .getOrCreate()
-    
+
     spark.sqlContext.setConf("spark.sql.parquet.compression.codec", options.getCompressionType)
     spark.sqlContext.setConf("orc.compress", "none")
 
     import spark.implicits._
 
-    val inputRDD = genData(options, spark)
+    log("Generating Data...")
+
+    val inputRDD = genData(options, spark).cache()
 
     val outputDS = inputRDD.toDS().repartition(options.getPartitions)
 
@@ -36,6 +41,18 @@ object Generator {
       outputDS.write.option("Operation", "Overwrite").saveToMapRDB(options.getOutput)
 
       outputFromTable(options.getOutput, options.getShowRows)(spark)
+
+    } else if (options.getOutputFileFormat == "mapres") {
+
+      val ssc = new StreamingContext(spark.sparkContext, Milliseconds(100))
+
+      val producerConf = new ProducerConf(bootstrapServers = "".split(",").toList)
+        .withKeySerializer("org.apache.kafka.common.serialization.StringSerializer")
+        .withValueSerializer("org.apache.kafka.common.serialization.StringSerializer")
+
+      import com.github.anicolaspp.RDDFunctions._
+
+      outputDS.rdd.map(_.toString).sendToKafka(options.getOutput, producerConf, options.getConcurrency)
 
     } else {
 
@@ -48,9 +65,7 @@ object Generator {
       outputFromParquet(options.getOutput, options.getShowRows, options.getRowCount)(spark)
     }
 
-    println("----------------------------------------------------------------------------------------------")
-    println("ParquetGenerator : " + options.getClassName + " data written out successfully to " + options.getOutput)
-    println("----------------------------------------------------------------------------------------------")
+    log(s"data written out successfully to ${options.getOutput}")
 
     spark.stop()
 
@@ -64,9 +79,7 @@ object Generator {
       val partitions = SparkTools.countNumPartitions(spark, inputDF)
       inputDF.show(showRows)
 
-      println("----------------------------------------------------------------")
-      println(s"RESULTS: table " + fileName + " contains " + items + " rows and makes " + partitions + " partitions when read")
-      println("----------------------------------------------------------------")
+      log(s"RESULTS: table " + fileName + " contains " + items + " rows and makes " + partitions + " partitions when read")
 
     }
   }
@@ -79,9 +92,7 @@ object Generator {
       val partitions = SparkTools.countNumPartitions(spark, inputDF)
       inputDF.show(showRows)
 
-      println("----------------------------------------------------------------")
-      println(s"RESULTS: file " + fileName + " contains " + items + " rows and makes " + partitions + " partitions when read")
-      println("----------------------------------------------------------------")
+      log(s"RESULTS: file " + fileName + " contains " + items + " rows and makes " + partitions + " partitions when read")
 
       if (expectedRows > 0) {
         require(items == expectedRows,
@@ -97,15 +108,29 @@ object Generator {
 
     val rowsPerTask = options.getRowCount / options.getTasks
 
-    spark
+    val gen = spark
       .sparkContext
       .parallelize(0 until options.getTasks, options.getTasks)
       .flatMap { _ =>
         val data = ListBuffer.empty[Data]
 
-        (0L to rowsPerTask).foreach(_ => data += Data(options))
+        (1L to rowsPerTask).foreach(_ => data += Data(options))
 
         data
       }
+
+    log(s"Generated: ${gen.count()} rows")
+
+    gen
+  }
+
+
+}
+
+object Logger {
+  def log(msg: String) = {
+    println("----------------------------------------------------------------------------------------------")
+    println(s"MapR Data Gen : $msg")
+    println("----------------------------------------------------------------------------------------------")
   }
 }
