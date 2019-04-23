@@ -55,4 +55,16 @@ We can generate parquet data in the following way.
 ```
 
 In this case the same data is generated and saved in `/user/mapr/data/parquet`
+
+We can generate stream data in the following way. 
+
+```bash
+./spark-submit --master yarn --deploy-mode client --num-executors 12 --executor-cores 2 --executor-memory 5G --class com.github.anicolaspp.Generator ~/mapr-data-gen-1.0.jar  -o /user/mapr/streams/random_data:t1 -r 1000000 -s 1024 -p 24 -f mapres -c 50 -t 20
+```
+
+1. Notice that -o points to a MapR Stream and includes the topic (t1 in our case). 
+2. We are generating 1000000 rows 
+3. We use -t 20 to indicate that we use 20 tasks to generate the data
+4. We use -p 24 to indicate that we use 24 partitions to write to the stream
+5. We use -c 50 to indicate that we use 50 threads on each partition to write to MapR-ES.
  
