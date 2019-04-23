@@ -59,7 +59,13 @@ In this case the same data is generated and saved in `/user/mapr/data/parquet`
 We can generate stream data in the following way. 
 
 ```bash
-./spark-submit --master yarn --deploy-mode client --num-executors 12 --executor-cores 2 --executor-memory 5G --class com.github.anicolaspp.Generator ~/mapr-data-gen-1.0.jar  -o /user/mapr/streams/random_data:t1 -r 1000000 -s 1024 -p 24 -f mapres -c 50 -t 20
+./spark-submit --master yarn \
+--deploy-mode client \
+--num-executors 12 \
+--executor-cores 2 \
+--executor-memory 5G \
+--class com.github.anicolaspp.Generator \
+~/mapr-data-gen-1.0.jar -o /user/mapr/streams/random_data:t1 -r 1000000 -s 1024 -p 24 -f mapres -c 50 -t 20
 ```
 
 1. Notice that -o points to a MapR Stream and includes the topic (t1 in our case). 
