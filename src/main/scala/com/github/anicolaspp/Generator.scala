@@ -1,7 +1,7 @@
 package com.github.anicolaspp
 
 import com.github.anicolaspp.configuration.ParseOptions
-import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 import org.apache.spark.streaming.kafka.producer.ProducerConf
 import org.apache.spark.streaming.{Milliseconds, StreamingContext}
 
@@ -44,15 +44,7 @@ object Generator {
 
     } else if (options.getOutputFileFormat == "mapres") {
 
-      val ssc = new StreamingContext(spark.sparkContext, Milliseconds(100))
-
-      val producerConf = new ProducerConf(bootstrapServers = "".split(",").toList)
-        .withKeySerializer("org.apache.kafka.common.serialization.StringSerializer")
-        .withValueSerializer("org.apache.kafka.common.serialization.StringSerializer")
-
-      import com.github.anicolaspp.RDDFunctions._
-
-      outputDS.rdd.map(_.toString).sendToKafka(options.getOutput, producerConf, options.getConcurrency)
+      writeToStream(options, outputDS)
 
     } else {
 
@@ -69,6 +61,16 @@ object Generator {
 
     spark.stop()
 
+  }
+
+  private def writeToStream(options: ParseOptions, outputDS: Dataset[Data]) = {
+    val producerConf = new ProducerConf(bootstrapServers = "".split(",").toList)
+      .withKeySerializer("org.apache.kafka.common.serialization.StringSerializer")
+      .withValueSerializer("org.apache.kafka.common.serialization.StringSerializer")
+
+    import com.github.anicolaspp.RDDFunctions._
+
+    outputDS.rdd.map(_.toString).sendToKafka(options.getOutput, producerConf, options.getConcurrency)
   }
 
   def outputFromTable(fileName: String, showRows: Int)(implicit spark: SparkSession): Unit = {
