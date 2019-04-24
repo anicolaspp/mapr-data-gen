@@ -6,7 +6,6 @@ import org.apache.spark.streaming.dstream.ConstantInputDStream
 import org.apache.spark.streaming.{Milliseconds, StreamingContext}
 
 import scala.collection.mutable.ListBuffer
-import scala.util.Try
 
 object Generator {
 
@@ -21,7 +20,7 @@ object Generator {
 
     options.parse(args)
 
-    implicit val spark = SparkSession
+    implicit val spark: SparkSession = SparkSession
       .builder()
       .appName("MapR Data Gen")
       .enableHiveSupport()
@@ -32,36 +31,51 @@ object Generator {
 
     import spark.implicits._
 
-    log("Generating Data...")
-
     val inputRDD = genData(options, spark).cache()
 
     val outputDS = inputRDD.toDS().repartition(options.getPartitions)
 
     if (options.getOutputFileFormat == "maprdb") {
-      outputDS.write.option("Operation", "Overwrite").saveToMapRDB(options.getOutput)
-
-      outputFromTable(options.getOutput, options.getShowRows)(spark)
+      writeToMapRDB(options, outputDS)
 
     } else if (options.getOutputFileFormat == "mapres") {
 
       writeToStream(options, outputDS)
 
+    } else if (options.getOutputFileFormat == "parquet") {
+
+      writeToParquet(options, outputDS)
     } else {
-
-      outputDS.write
-        .options(options.getDataSinkOptions)
-        .format(options.getOutputFileFormat)
-        .mode(SaveMode.Overwrite)
-        .save(options.getOutput)
-
-      outputFromParquet(options.getOutput, options.getShowRows, options.getRowCount)(spark)
+      exit(spark)
     }
 
     log(s"data written out successfully to ${options.getOutput}")
 
     spark.stop()
 
+  }
+
+  private def exit(spark: SparkSession) = {
+    log("Format not supported")
+
+    spark.stop()
+    sys.exit()
+  }
+
+  private def writeToParquet(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession) = {
+    outputDS.write
+      .options(options.getDataSinkOptions)
+      .format(options.getOutputFileFormat)
+      .mode(SaveMode.Overwrite)
+      .save(options.getOutput)
+
+    outputFromParquet(options.getOutput, options.getShowRows, options.getRowCount)
+  }
+
+  private def writeToMapRDB(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession) = {
+    outputDS.write.option("Operation", "Overwrite").saveToMapRDB(options.getOutput)
+
+    outputFromTable(options.getOutput, options.getShowRows)
   }
 
   private def writeToStream(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession) = {
@@ -75,14 +89,13 @@ object Generator {
 
       stream.foreachRDD(_.sendToKafka(options.getOutput, options.getConcurrency))
 
-      log(s"Running for the next ${options.getTimeout} minutes...")
+      log(s"Running for the next ${options.getTimeout}...")
 
       ssc.start()
 
-      Try {
-        ssc.awaitTerminationOrTimeout(options.getTimeout.toMillis)
-      }
+      Thread.sleep(options.getTimeout.toMillis)
 
+      ssc.stop()
     } else {
       outputDS.rdd.map(_.toString).sendToKafka(options.getOutput, options.getConcurrency)
     }
@@ -119,6 +132,8 @@ object Generator {
   }
 
   private def genData(options: ParseOptions, spark: SparkSession) = {
+    log("Generating Data...")
+
     /* some calculations */
     require(options.getRowCount % options.getTasks == 0, " Please set rowCount (-r) and tasks (-t) such that " +
       "rowCount%tasks == 0, currently, rows: " + options.getRowCount + " tasks " + options.getTasks)
@@ -141,13 +156,4 @@ object Generator {
     gen
   }
 
-
-}
-
-object Logger {
-  def log(msg: String) = {
-    println("----------------------------------------------------------------------------------------------")
-    println(s"MapR Data Gen : $msg")
-    println("----------------------------------------------------------------------------------------------")
-  }
 }
