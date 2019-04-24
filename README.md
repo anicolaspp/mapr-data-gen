@@ -74,3 +74,9 @@ We can generate stream data in the following way.
 4. We use -p 24 to indicate that we use 24 partitions to write to the stream
 5. We use -c 50 to indicate that we use 50 threads on each partition to write to MapR-ES.
  
+Finally, if we need to run the stream data generator for a period of time (we want to test a consumer while writing data) we can add `-m` argument to indicate the time we want to run it (in minutes).
+
+```bash
+./spark-submit --master yarn --deploy-mode client --num-executors 12 --executor-cores 2 --executor-memory 5G --class com.github.anicolaspp.Generator ~/mapr-data-gen-1.0.jar  -o /user/mapr/streams/random_data:t1 -r 10000 -s 1024 -p 5 -f mapres -c 50 -t 100 -m 5
+```
+Notice the same arguments than before, but we have added `-m 5` to indicate that we want to write the generated data during 5 minutes. The application will stop after that.
