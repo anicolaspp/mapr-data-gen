@@ -70,9 +70,9 @@ We can generate stream data in the following way.
 
 1. Notice that -o points to a MapR Stream and includes the topic (t1 in our case). 
 2. We are generating 1000000 rows 
-3. We use -t 20 to indicate that we use 20 tasks to generate the data
-4. We use -p 24 to indicate that we use 24 partitions to write to the stream
-5. We use -c 50 to indicate that we use 50 threads on each partition to write to MapR-ES.
+3. We use `-t 20` to indicate that we use 20 tasks to generate the data
+4. We use `-p 24` to indicate that we use 24 partitions to write to the stream
+5. We use `-c 50` to indicate that we use 50 threads on each partition to write to MapR-ES.
  
 Finally, if we need to run the stream data generator for a period of time (we want to test a consumer while writing data) we can add `-m` argument to indicate the time we want to run it (in minutes).
 
