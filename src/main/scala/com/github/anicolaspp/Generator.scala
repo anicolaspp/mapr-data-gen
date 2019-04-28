@@ -1,11 +1,8 @@
 package com.github.anicolaspp
 
-import com.github.anicolaspp.Logger.log
 import com.github.anicolaspp.configuration.ParseOptions
-import com.github.anicolaspp.handlers.{CsvHandler, ParquetHandler, StreamHandler}
-import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
-import org.apache.spark.streaming.dstream.ConstantInputDStream
-import org.apache.spark.streaming.{Milliseconds, StreamingContext}
+import com.github.anicolaspp.handlers.{CsvHandler, JsonHandler, ParquetHandler, StreamHandler}
+import org.apache.spark.sql.{Dataset, SparkSession}
 
 import scala.collection.mutable.ListBuffer
 
@@ -53,7 +50,7 @@ object Generator {
 
     } else if (options.getOutputFileFormat == "json") {
 
-      writeToJSON(options, outputDS)
+      JsonHandler.writeToJSON(options, outputDS)
 
     } else {
       exit(spark)
@@ -64,16 +61,7 @@ object Generator {
     spark.stop()
 
   }
-
-  private def writeToJSON(options: ParseOptions, outputDS: Dataset[Data]) = {
-    outputDS
-      .write
-      .options(options.getDataSinkOptions)
-      .mode(SaveMode.Overwrite)
-      .json(options.getOutput)
-  }
-
-
+  
   private def exit(spark: SparkSession) = {
     log("Format not supported")
 
