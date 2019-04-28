@@ -1,6 +1,8 @@
 package com.github.anicolaspp
 
+import com.github.anicolaspp.Logger.log
 import com.github.anicolaspp.configuration.ParseOptions
+import com.github.anicolaspp.handlers.{CsvHandler, ParquetHandler, StreamHandler}
 import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 import org.apache.spark.streaming.dstream.ConstantInputDStream
 import org.apache.spark.streaming.{Milliseconds, StreamingContext}
@@ -40,11 +42,19 @@ object Generator {
 
     } else if (options.getOutputFileFormat == "mapres") {
 
-      writeToStream(options, outputDS)
+      StreamHandler.writeToStream(options, outputDS)
 
     } else if (options.getOutputFileFormat == "parquet") {
 
-      writeToParquet(options, outputDS)
+      ParquetHandler.writeToParquet(options, outputDS)
+    } else if (options.getOutputFileFormat == "csv") {
+
+      CsvHandler.writeToCSV(options, outputDS)
+
+    } else if (options.getOutputFileFormat == "json") {
+
+      writeToJSON(options, outputDS)
+
     } else {
       exit(spark)
     }
@@ -55,6 +65,15 @@ object Generator {
 
   }
 
+  private def writeToJSON(options: ParseOptions, outputDS: Dataset[Data]) = {
+    outputDS
+      .write
+      .options(options.getDataSinkOptions)
+      .mode(SaveMode.Overwrite)
+      .json(options.getOutput)
+  }
+
+
   private def exit(spark: SparkSession) = {
     log("Format not supported")
 
@@ -62,44 +81,13 @@ object Generator {
     sys.exit()
   }
 
-  private def writeToParquet(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession) = {
-    outputDS.write
-      .options(options.getDataSinkOptions)
-      .format(options.getOutputFileFormat)
-      .mode(SaveMode.Overwrite)
-      .save(options.getOutput)
 
-    outputFromParquet(options.getOutput, options.getShowRows, options.getRowCount)
-  }
-
-  private def writeToMapRDB(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession) = {
+  private def writeToMapRDB(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession): Unit = {
     outputDS.write.option("Operation", "Overwrite").saveToMapRDB(options.getOutput)
 
     outputFromTable(options.getOutput, options.getShowRows)
   }
 
-  private def writeToStream(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession) = {
-    import com.github.anicolaspp.RDDFunctions._
-
-    if (options.getTimeout != null) {
-
-      val ssc = new StreamingContext(spark.sparkContext, Milliseconds(10))
-
-      val stream = new ConstantInputDStream[String](ssc, outputDS.rdd.map(_.toString))
-
-      stream.foreachRDD(_.sendToKafka(options.getOutput, options.getConcurrency))
-
-      log(s"Running for the next ${options.getTimeout}...")
-
-      ssc.start()
-
-      Thread.sleep(options.getTimeout.toMillis)
-
-      ssc.stop()
-    } else {
-      outputDS.rdd.map(_.toString).sendToKafka(options.getOutput, options.getConcurrency)
-    }
-  }
 
   def outputFromTable(fileName: String, showRows: Int)(implicit spark: SparkSession): Unit = {
     if (showRows > 0) {
@@ -111,23 +99,6 @@ object Generator {
 
       log(s"RESULTS: table " + fileName + " contains " + items + " rows and makes " + partitions + " partitions when read")
 
-    }
-  }
-
-  def outputFromParquet(fileName: String, showRows: Int, expectedRows: Long)(implicit spark: SparkSession): Unit = {
-    if (showRows > 0) {
-      val inputDF = spark.read.parquet(fileName)
-
-      val items = inputDF.count()
-      val partitions = SparkTools.countNumPartitions(spark, inputDF)
-      inputDF.show(showRows)
-
-      log(s"RESULTS: file " + fileName + " contains " + items + " rows and makes " + partitions + " partitions when read")
-
-      if (expectedRows > 0) {
-        require(items == expectedRows,
-          "Number of rows do not match, counted: " + items + " expected: " + expectedRows)
-      }
     }
   }
 
