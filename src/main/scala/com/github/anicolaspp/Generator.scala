@@ -1,15 +1,14 @@
 package com.github.anicolaspp
 
 import com.github.anicolaspp.configuration.ParseOptions
-import com.github.anicolaspp.handlers.{CsvHandler, JsonHandler, ParquetHandler, StreamHandler}
-import org.apache.spark.sql.{Dataset, SparkSession}
+import com.github.anicolaspp.formats.Format
+import com.github.anicolaspp.handlers.FormatEvaluator
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.mutable.ListBuffer
 
 object Generator {
-
-  import Logger._
-  import com.mapr.db.spark.sql._
+  import com.github.anicolaspp.Functions._
 
   def main(args: Array[String]) {
     val options = new ParseOptions()
@@ -34,60 +33,14 @@ object Generator {
 
     val outputDS = inputRDD.toDS().repartition(options.getPartitions)
 
-    if (options.getOutputFileFormat == "maprdb") {
-      writeToMapRDB(options, outputDS)
+    val format = Format.fromString(options.getOutputFileFormat)
 
-    } else if (options.getOutputFileFormat == "mapres") {
-
-      StreamHandler.writeToStream(options, outputDS)
-
-    } else if (options.getOutputFileFormat == "parquet") {
-
-      ParquetHandler.writeToParquet(options, outputDS)
-    } else if (options.getOutputFileFormat == "csv") {
-
-      CsvHandler.writeToCSV(options, outputDS)
-
-    } else if (options.getOutputFileFormat == "json") {
-
-      JsonHandler.writeToJSON(options, outputDS)
-
-    } else {
-      exit(spark)
-    }
+    FormatEvaluator().eval(format, options, outputDS)
 
     log(s"data written out successfully to ${options.getOutput}")
 
     spark.stop()
 
-  }
-  
-  private def exit(spark: SparkSession) = {
-    log("Format not supported")
-
-    spark.stop()
-    sys.exit()
-  }
-
-
-  private def writeToMapRDB(options: ParseOptions, outputDS: Dataset[Data])(implicit spark: SparkSession): Unit = {
-    outputDS.write.option("Operation", "Overwrite").saveToMapRDB(options.getOutput)
-
-    outputFromTable(options.getOutput, options.getShowRows)
-  }
-
-
-  def outputFromTable(fileName: String, showRows: Int)(implicit spark: SparkSession): Unit = {
-    if (showRows > 0) {
-      val inputDF = spark.loadFromMapRDB(fileName)
-
-      val items = inputDF.count()
-      val partitions = SparkTools.countNumPartitions(spark, inputDF)
-      inputDF.show(showRows)
-
-      log(s"RESULTS: table " + fileName + " contains " + items + " rows and makes " + partitions + " partitions when read")
-
-    }
   }
 
   private def genData(options: ParseOptions, spark: SparkSession) = {
@@ -116,3 +69,20 @@ object Generator {
   }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
