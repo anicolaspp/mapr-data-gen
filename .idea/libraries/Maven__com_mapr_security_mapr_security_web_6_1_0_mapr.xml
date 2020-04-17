@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.mapr.security:mapr-security-web:6.1.0-mapr">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/mapr/security/mapr-security-web/6.1.0-mapr/mapr-security-web-6.1.0-mapr.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/mapr/security/mapr-security-web/6.1.0-mapr/mapr-security-web-6.1.0-mapr-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/mapr/security/mapr-security-web/6.1.0-mapr/mapr-security-web-6.1.0-mapr-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

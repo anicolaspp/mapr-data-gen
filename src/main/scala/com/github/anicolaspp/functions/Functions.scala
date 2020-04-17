@@ -12,7 +12,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Random
 
-package object Functions {
+object Functions {
 
   implicit class Functions(rdd: RDD[String]) {
 

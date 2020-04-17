@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.apache.kafka:kafka-tools:1.1.1-mapr-1808">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-tools/1.1.1-mapr-1808/kafka-tools-1.1.1-mapr-1808.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-tools/1.1.1-mapr-1808/kafka-tools-1.1.1-mapr-1808-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-tools/1.1.1-mapr-1808/kafka-tools-1.1.1-mapr-1808-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
