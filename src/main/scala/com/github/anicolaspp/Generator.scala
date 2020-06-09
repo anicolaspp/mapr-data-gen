@@ -6,8 +6,11 @@ import com.github.anicolaspp.handlers.FormatEvaluator
 import org.apache.spark.sql.SparkSession
 
 import scala.collection.mutable.ListBuffer
+import java.time.LocalDateTime
+import java.{util => ju}
 
 object Generator {
+
   import com.github.anicolaspp.Functions._
 
   def main(args: Array[String]) {
@@ -35,9 +38,11 @@ object Generator {
 
     val format = Format.fromString(options.getOutputFileFormat)
 
+    val now = org.joda.time.DateTime.now().getMillis
+
     FormatEvaluator().eval(format, options, outputDS)
 
-    log(s"data written out successfully to ${options.getOutput}")
+    log(s"data written out successfully to ${options.getOutput} in ${(org.joda.time.DateTime.now().getMillis - now) / 1000L} seconds")
 
     spark.stop()
 
